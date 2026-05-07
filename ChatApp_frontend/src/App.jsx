@@ -206,16 +206,18 @@ function App() {
           </footer>
         </div>
       )}
-      <footer className="app-footer">
-        <div className="footer-content">
-          <p>&copy; 2026 BS Creation. All rights reserved.</p>
-          <div className="footer-links">
-            <span>v1.0.0</span>
-            <span className="divider">|</span>
-            <span>Real-time Chat Experience</span>
+      {view === 'login' && (
+        <footer className="app-footer">
+          <div className="footer-content">
+            <p>&copy; 2026 BS Creation. All rights reserved.</p>
+            <div className="footer-links">
+              <span>v1.0.0</span>
+              <span className="divider">|</span>
+              <span>Real-time Chat Experience</span>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }

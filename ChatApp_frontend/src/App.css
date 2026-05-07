@@ -269,6 +269,8 @@
   padding: 1.5rem 2.5rem;
   background: rgba(15, 23, 42, 0.4);
   border-top: 1px solid var(--glass-border);
+  position: relative;
+  z-index: 10;
 }
 
 .input-container {
