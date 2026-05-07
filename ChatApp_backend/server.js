@@ -18,9 +18,10 @@ io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
 
   socket.on('joinRoom', async (userName) => {
+    socket.userName = userName; // Store the name for disconnect event
     console.log(`${userName} joined the room.`);
     await socket.join(ROOM);
-    socket.to(ROOM).emit("roomNotice", userName);
+    socket.to(ROOM).emit("roomNotice", `${userName} joined the chat`);
   });
 
   socket.on('chatMessage', (message) => {
@@ -35,7 +36,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('user disconnected', socket.id);
+    if (socket.userName) {
+      console.log(`${socket.userName} disconnected`);
+      socket.to(ROOM).emit("roomNotice", `${socket.userName} left the chat`);
+    }
   });
 });
 

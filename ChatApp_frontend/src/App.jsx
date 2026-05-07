@@ -22,8 +22,8 @@ function App() {
       console.log('Connected to socket server');
     });
 
-    socket.current.on('roomNotice', (name) => {
-      setMessages((prev) => [...prev, { type: 'notice', text: `${name} joined the chat` }]);
+    socket.current.on('roomNotice', (msg) => {
+      setMessages((prev) => [...prev, { type: 'notice', text: msg }]);
     });
 
     socket.current.on('chatMessage', (data) => {
@@ -188,7 +188,7 @@ function App() {
             <div className="input-container">
               <input
                 type="text"
-                placeholder="Message #global-chat"
+                placeholder="Message #Chatly"
                 value={text}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
