@@ -15,38 +15,7 @@ function App() {
   const [text, setText] = useState('');
   const [typingUser, setTypingUser] = useState(null);
 
-  useEffect(() => {
-    socket.current = connectWS();
 
-    socket.current.on('connect', () => {
-      console.log('Connected to socket server');
-    });
-
-    socket.current.on('roomNotice', (msg) => {
-      setMessages((prev) => [...prev, { type: 'notice', text: msg }]);
-    });
-
-    socket.current.on('chatMessage', (data) => {
-      const msg = data.chatMessage;
-      if (msg) {
-        setMessages((prev) => [...prev, { ...msg, type: 'chat', isMe: false }]);
-        // If the person who sent the message was typing, clear their typing status
-        setTypingUser(null);
-      }
-    });
-
-    socket.current.on('userTyping', (data) => {
-      if (data.isTyping) {
-        setTypingUser(data.userName);
-      } else {
-        setTypingUser(null);
-      }
-    });
-
-    return () => {
-      if (socket.current) socket.current.disconnect();
-    }
-  }, [])
 
   // Auto-scroll
   useEffect(() => {
@@ -62,31 +31,64 @@ function App() {
     return `${hours}:${minutes}`;
   }
 
+  const handleLogout = () => {
+    if (socket.current) {
+      socket.current.disconnect();
+    }
+    setUserName('');
+    setInputName('');
+    setMessages([]);
+    setView('login');
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
     const name = inputName.trim();
     if (!name) return;
 
-    socket.current.emit('joinRoom', name);
-    setUserName(name);
-    setView('chat');
+    // Connect when logging in
+    socket.current = connectWS();
+    
+    socket.current.on('connect', () => {
+      console.log('Connected to socket server');
+      socket.current.emit('joinRoom', name);
+      setUserName(name);
+      setView('chat');
+    });
+
+    socket.current.on('roomNotice', (msg) => {
+      setMessages((prev) => [...prev, { type: 'notice', text: msg }]);
+    });
+
+    socket.current.on('chatMessage', (data) => {
+      const msg = data.chatMessage;
+      if (msg) {
+        setMessages((prev) => [...prev, { ...msg, type: 'chat', isMe: false }]);
+        setTypingUser(null);
+      }
+    });
+
+    socket.current.on('userTyping', (data) => {
+      if (data.isTyping) {
+        setTypingUser(data.userName);
+      } else {
+        setTypingUser(null);
+      }
+    });
   };
 
   const handleInputChange = (e) => {
     const val = e.target.value;
     setText(val);
 
-    // Emit typing status
-    if (socket.current) {
+    if (socket.current && socket.current.connected) {
       socket.current.emit('typing', { userName, isTyping: true });
     }
 
-    // Clear previous timeout
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
-    // Set timeout to stop typing status after 2 seconds of inactivity
     typingTimeoutRef.current = setTimeout(() => {
-      if (socket.current) {
+      if (socket.current && socket.current.connected) {
         socket.current.emit('typing', { userName, isTyping: false });
       }
     }, 2000);
@@ -96,9 +98,8 @@ function App() {
     const msgText = text.trim();
     if (!msgText) return;
 
-    // Clear typing timeout and emit stop typing
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    socket.current.emit('typing', { userName, isTyping: false });
+    if (socket.current) socket.current.emit('typing', { userName, isTyping: false });
 
     const msgData = {
       id: Date.now(),
@@ -108,7 +109,7 @@ function App() {
     };
 
     setMessages((prev) => [...prev, { ...msgData, type: 'chat', isMe: true }]);
-    socket.current.emit('chatMessage', msgData);
+    if (socket.current) socket.current.emit('chatMessage', msgData);
     setText('');
   };
 
@@ -141,16 +142,21 @@ function App() {
       ) : (
         <div className="chat-view">
           <header className="chat-header">
-            <div>
+            <div className="header-left">
               <h2><span>💬</span>Chatly</h2>
               <div className="status-badge">
                 <div className="status-dot"></div>
                 Live
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: 'var(--text-bright)', fontWeight: 600 }}>{userName}</div>
-              <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>Connected</div>
+            <div className="header-right">
+              <div className="user-info">
+                <div className="user-name">{userName}</div>
+                <div className="user-status">Connected</div>
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </header>
 
