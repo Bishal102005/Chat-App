@@ -7,109 +7,115 @@ function App() {
   const scrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const [view, setView] = useState('login');
+  const [view, setView] = useState('login');      // 'login' | 'lobby' | 'chat'
   const [userName, setUserName] = useState('');
   const [inputName, setInputName] = useState('');
 
+  const [onlineUsers, setOnlineUsers] = useState([]); // [{ socketId, userName, status }]
+  const [incomingRequest, setIncomingRequest] = useState(null); // { fromSocketId, fromName }
+  const [pendingRequest, setPendingRequest] = useState(null);  // socketId we sent request to
+
+  const [chatPartner, setChatPartner] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const [typingUser, setTypingUser] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [partnerTyping, setPartnerTyping] = useState(false);
 
   const getAvatarUrl = (name) => {
-    // Using 'adventurer-neutral' (v9.x) for an expressive, inclusive, and gender-neutral look
     return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(name)}`;
   };
-
-
 
   // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, typingUser]);
+  }, [messages, partnerTyping]);
 
   function formatTime(ts) {
     const date = new Date(ts);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   }
-
-  const handleLogout = () => {
-    if (socket.current) {
-      socket.current.disconnect();
-    }
-    setUserName('');
-    setInputName('');
-    setMessages([]);
-    setView('login');
-  };
 
   const handleLogin = (e) => {
     e.preventDefault();
     const name = inputName.trim();
     if (!name) return;
 
-    // Connect when logging in
     socket.current = connectWS();
 
     socket.current.on('connect', () => {
-      console.log('Connected to socket server');
-      socket.current.emit('joinRoom', name);
+      socket.current.emit('joinLobby', name);
       setUserName(name);
-      setView('chat');
-    });
-
-    socket.current.on('roomNotice', (msg) => {
-      setMessages((prev) => [...prev, { type: 'notice', text: msg }]);
-    });
-
-    socket.current.on('chatMessage', (data) => {
-      const msg = data.chatMessage;
-      if (msg) {
-        setMessages((prev) => [...prev, { ...msg, type: 'chat', isMe: false }]);
-        setTypingUser(null);
-      }
-    });
-
-    socket.current.on('userTyping', (data) => {
-      if (data.isTyping) {
-        setTypingUser(data.userName);
-      } else {
-        setTypingUser(null);
-      }
+      setView('lobby');
     });
 
     socket.current.on('updateUserList', (users) => {
       setOnlineUsers(users);
     });
+
+    // Someone sent us a chat request
+    socket.current.on('incomingRequest', (data) => {
+      setIncomingRequest(data);
+    });
+
+    // Our request was declined
+    socket.current.on('requestDeclined', ({ byName }) => {
+      setPendingRequest(null);
+      alert(`${byName} declined your request.`);
+    });
+
+    // Chat has started (both accepted)
+    socket.current.on('chatStarted', ({ roomId, partnerName }) => {
+      setRoomId(roomId);
+      setChatPartner(partnerName);
+      setMessages([]);
+      setIncomingRequest(null);
+      setPendingRequest(null);
+      setView('chat');
+    });
+
+    // Receive a private message
+    socket.current.on('privateMessage', ({ message }) => {
+      setMessages((prev) => [...prev, { ...message, isMe: false }]);
+      setPartnerTyping(false);
+    });
+
+    // Partner typing indicator
+    socket.current.on('partnerTyping', ({ isTyping }) => {
+      setPartnerTyping(isTyping);
+    });
+
+    // Partner left the chat
+    socket.current.on('partnerLeft', () => {
+      alert(`${chatPartner || 'Your chat partner'} has left the chat.`);
+      setView('lobby');
+      setMessages([]);
+      setChatPartner('');
+      setRoomId('');
+    });
   };
 
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setText(val);
+  const sendChatRequest = (toSocketId) => {
+    if (pendingRequest) return;
+    setPendingRequest(toSocketId);
+    socket.current.emit('chatRequest', { toSocketId });
+  };
 
-    if (socket.current && socket.current.connected) {
-      socket.current.emit('typing', { userName, isTyping: true });
-    }
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
-      if (socket.current && socket.current.connected) {
-        socket.current.emit('typing', { userName, isTyping: false });
-      }
-    }, 2000);
+  const handleRequestResponse = (accepted) => {
+    socket.current.emit('requestResponse', {
+      accepted,
+      toSocketId: incomingRequest.fromSocketId
+    });
+    if (!accepted) setIncomingRequest(null);
   };
 
   const sendMessage = () => {
     const msgText = text.trim();
-    if (!msgText) return;
+    if (!msgText || !roomId) return;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    if (socket.current) socket.current.emit('typing', { userName, isTyping: false });
+    socket.current.emit('privateTyping', { roomId, isTyping: false });
 
     const msgData = {
       id: Date.now(),
@@ -118,9 +124,22 @@ function App() {
       time: formatTime(Date.now())
     };
 
-    setMessages((prev) => [...prev, { ...msgData, type: 'chat', isMe: true }]);
-    if (socket.current) socket.current.emit('chatMessage', msgData);
+    setMessages((prev) => [...prev, { ...msgData, isMe: true }]);
+    socket.current.emit('privateMessage', { roomId, message: msgData });
     setText('');
+  };
+
+  const handleInputChange = (e) => {
+    setText(e.target.value);
+    if (socket.current?.connected) {
+      socket.current.emit('privateTyping', { roomId, isTyping: true });
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket.current?.connected) {
+        socket.current.emit('privateTyping', { roomId, isTyping: false });
+      }
+    }, 2000);
   };
 
   const handleKeyDown = (e) => {
@@ -130,13 +149,39 @@ function App() {
     }
   };
 
+  const leaveChat = () => {
+    socket.current.emit('leaveChat', { roomId });
+    setView('lobby');
+    setMessages([]);
+    setChatPartner('');
+    setRoomId('');
+  };
+
+  const handleLogout = () => {
+    if (socket.current) socket.current.disconnect();
+    setView('login');
+    setUserName('');
+    setInputName('');
+    setOnlineUsers([]);
+    setMessages([]);
+    setChatPartner('');
+    setRoomId('');
+    setIncomingRequest(null);
+    setPendingRequest(null);
+  };
+
+  // Filter out ourselves from the user list
+  const otherUsers = onlineUsers.filter(u => u.socketId !== socket.current?.id);
+
   return (
     <div className="app-container">
-      {view === 'login' ? (
+
+      {/* ── LOGIN VIEW ── */}
+      {view === 'login' && (
         <div className="login-page">
           <div className="logo-icon">💬</div>
           <h1>Chatly</h1>
-          <p>The simplest way to connect with friends.</p>
+          <p>Connect privately. Chat securely.</p>
           <form className="login-form" onSubmit={handleLogin}>
             <input
               type="text"
@@ -146,99 +191,134 @@ function App() {
               autoFocus
               required
             />
-            <button type="submit">Start Chatting</button>
+            <button type="submit">Enter Lobby</button>
           </form>
         </div>
-      ) : (
+      )}
+
+      {/* ── LOBBY VIEW ── */}
+      {view === 'lobby' && (
+        <div className="lobby-view">
+          <header className="lobby-header">
+            <div className="lobby-header-left">
+              <h2><span>💬</span> Chatly</h2>
+              <div className="status-badge">
+                <div className="status-dot"></div>
+                {onlineUsers.length} Online
+              </div>
+            </div>
+            <div className="lobby-header-right">
+              <img src={getAvatarUrl(userName)} alt={userName} className="header-user-avatar" />
+              <div className="user-info">
+                <div className="user-name">{userName}</div>
+                <div className="user-status">In Lobby</div>
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>Logout</button>
+            </div>
+          </header>
+
+          <main className="lobby-main">
+            <h3 className="lobby-title">👥 Online Users</h3>
+            {otherUsers.length === 0 ? (
+              <div className="lobby-empty">
+                <div className="lobby-empty-icon">🔍</div>
+                <p>No other users online yet.</p>
+                <span>Share the link and invite someone to chat!</span>
+              </div>
+            ) : (
+              <div className="user-cards">
+                {otherUsers.map((user) => (
+                  <div key={user.socketId} className={`user-card ${user.status === 'busy' ? 'busy' : ''}`}>
+                    <img src={getAvatarUrl(user.userName)} alt={user.userName} className="user-card-avatar" />
+                    <div className="user-card-info">
+                      <div className="user-card-name">{user.userName}</div>
+                      <div className={`user-card-status ${user.status}`}>
+                        {user.status === 'busy' ? '🔴 In a chat' : '🟢 Available'}
+                      </div>
+                    </div>
+                    <button
+                      className={`request-btn ${pendingRequest === user.socketId ? 'pending' : ''} ${user.status === 'busy' ? 'disabled' : ''}`}
+                      onClick={() => sendChatRequest(user.socketId)}
+                      disabled={user.status === 'busy' || !!pendingRequest}
+                    >
+                      {pendingRequest === user.socketId ? '⏳ Waiting...' : user.status === 'busy' ? 'Busy' : '💬 Request Chat'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </main>
+
+          {/* Incoming request popup */}
+          {incomingRequest && (
+            <div className="request-overlay">
+              <div className="request-modal">
+                <img src={getAvatarUrl(incomingRequest.fromName)} alt={incomingRequest.fromName} className="request-modal-avatar" />
+                <h3>{incomingRequest.fromName}</h3>
+                <p>wants to start a private chat with you</p>
+                <div className="request-modal-actions">
+                  <button className="accept-btn" onClick={() => handleRequestResponse(true)}>✓ Accept</button>
+                  <button className="decline-btn" onClick={() => handleRequestResponse(false)}>✗ Decline</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PRIVATE CHAT VIEW ── */}
+      {view === 'chat' && (
         <div className="chat-view">
           <header className="chat-header">
             <div className="header-left">
-              <h2><span>💬</span>Chatly</h2>
-              <div className="online-status-container">
-                <div className="status-badge">
-                  <div className="status-dot"></div>
-                  {onlineUsers.length} Online
-                </div>
-                <div className="online-details">
-                  <div className="online-avatars">
-                    {onlineUsers.slice(0, 5).map((user, i) => (
-                      <div key={i} className="mini-avatar-wrapper" title={user}>
-                        <img
-                          src={getAvatarUrl(user)}
-                          alt={user}
-                          className="mini-avatar"
-                        />
-                        <span className="avatar-tooltip">{user}</span>
-                      </div>
-                    ))}
-                    {onlineUsers.length > 5 && (
-                      <div className="more-users">+{onlineUsers.length - 5}</div>
-                    )}
-                  </div>
-                  <div className="online-names-list">
-                    {onlineUsers.map((user, i) => (
-                      <span key={i} className="online-user-tag">
-                        {user}{i < onlineUsers.length - 1 ? ',' : ''}
-                      </span>
-                    ))}
+              <div className="chat-partner-info">
+                <img src={getAvatarUrl(chatPartner)} alt={chatPartner} className="partner-avatar" />
+                <div>
+                  <div className="user-name">{chatPartner}</div>
+                  <div className="user-status">
+                    {partnerTyping ? <span className="typing-badge">typing...</span> : '🔒 Private Chat'}
                   </div>
                 </div>
               </div>
             </div>
             <div className="header-right">
-              <img
-                src={getAvatarUrl(userName)}
-                alt={userName}
-                className="header-user-avatar"
-              />
+              <img src={getAvatarUrl(userName)} alt={userName} className="header-user-avatar" />
               <div className="user-info">
                 <div className="user-name">{userName}</div>
-                <div className="user-status">Connected</div>
+                <div className="user-status">You</div>
               </div>
-              <button className="logout-btn" onClick={handleLogout}>
-                Logout
-              </button>
+              <button className="logout-btn leave" onClick={leaveChat}>Leave Chat</button>
             </div>
           </header>
 
           <main className="message-list" ref={scrollRef}>
-            {messages.length === 0 && !typingUser && (
-              <div className="notice">No messages yet. Start the conversation!</div>
+            {messages.length === 0 && (
+              <div className="notice">🔒 This is a private conversation. Start chatting!</div>
             )}
             {messages.map((msg, i) => (
-              msg.type === 'notice' ? (
-                <div key={i} className="notice">{msg.text}</div>
-              ) : (
-                <div key={msg.id || i} className={`message-wrapper ${msg.isMe ? 'me' : 'them'}`}>
-                  <img
-                    src={getAvatarUrl(msg.sender)}
-                    alt={msg.sender}
-                    className="message-avatar"
-                  />
-                  <div className="message-content">
-                    <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
-                    <div className="message-bubble">
-                      {msg.text}
-                      <span className="message-time">{msg.time}</span>
-                    </div>
+              <div key={msg.id || i} className={`message-wrapper ${msg.isMe ? 'me' : 'them'}`}>
+                <img
+                  src={getAvatarUrl(msg.sender)}
+                  alt={msg.sender}
+                  className="message-avatar"
+                />
+                <div className="message-content">
+                  <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
+                  <div className="message-bubble">
+                    {msg.text}
+                    <span className="message-time">{msg.time}</span>
                   </div>
                 </div>
-              )
+              </div>
             ))}
 
-            {typingUser && (
+            {partnerTyping && (
               <div className="typing-indicator">
-                <img
-                  src={getAvatarUrl(typingUser)}
-                  alt={typingUser}
-                  className="typing-avatar"
-                />
+                <img src={getAvatarUrl(chatPartner)} alt={chatPartner} className="typing-avatar" />
                 <div className="dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+                  <span></span><span></span><span></span>
                 </div>
-                <span className="typing-text">{typingUser} is typing...</span>
+                <span className="typing-text">{chatPartner} is typing...</span>
               </div>
             )}
           </main>
@@ -247,7 +327,7 @@ function App() {
             <div className="input-container">
               <input
                 type="text"
-                placeholder="Message #Chatly"
+                placeholder={`Message ${chatPartner}...`}
                 value={text}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
@@ -259,20 +339,21 @@ function App() {
           </footer>
         </div>
       )}
+
       {view === 'login' && (
         <footer className="app-footer">
           <div className="footer-content">
             <p>&copy; 2026 BS Creation. All rights reserved.</p>
             <div className="footer-links">
-              <span>v1.0.0</span>
+              <span>v2.0.0</span>
               <span className="divider">|</span>
-              <span>Real-time Chat Experience</span>
+              <span>Private Chat Experience</span>
             </div>
           </div>
         </footer>
       )}
     </div>
-  )
+  );
 }
 
 export default App
