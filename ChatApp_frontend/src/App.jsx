@@ -17,7 +17,8 @@ function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const getAvatarUrl = (name) => {
-    return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+    // Using 'adventurer' style for a more creative and detailed look
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,f8d0d6`;
   };
 
 
