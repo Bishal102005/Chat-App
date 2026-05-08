@@ -13,15 +13,23 @@ const io = new Server(server, {
 });
 
 const ROOM = 'group';
+const users = new Map(); // Track connected users: socketId -> userName
 
 io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
 
   socket.on('joinRoom', async (userName) => {
-    socket.userName = userName; // Store the name for disconnect event
+    socket.userName = userName; 
+    users.set(socket.id, userName); // Add to online users
+    
     console.log(`${userName} joined the room.`);
     await socket.join(ROOM);
+    
+    // Notify others
     socket.to(ROOM).emit("roomNotice", `${userName} joined the chat`);
+    
+    // Send updated user list to everyone in the room
+    io.to(ROOM).emit("updateUserList", Array.from(users.values()));
   });
 
   socket.on('chatMessage', (message) => {
@@ -31,14 +39,18 @@ io.on('connection', (socket) => {
 
   // Typing Indicator
   socket.on('typing', (data) => {
-    // Broadcast to others: { userName, isTyping }
     socket.to(ROOM).emit('userTyping', data);
   });
 
   socket.on('disconnect', () => {
     if (socket.userName) {
       console.log(`${socket.userName} disconnected`);
+      users.delete(socket.id); // Remove from online users
+      
       socket.to(ROOM).emit("roomNotice", `${socket.userName} left the chat`);
+      
+      // Send updated user list to everyone
+      io.to(ROOM).emit("updateUserList", Array.from(users.values()));
     }
   });
 });

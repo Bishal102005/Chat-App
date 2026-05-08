@@ -14,6 +14,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [typingUser, setTypingUser] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   const getAvatarUrl = (name) => {
     return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
@@ -78,6 +79,10 @@ function App() {
       } else {
         setTypingUser(null);
       }
+    });
+
+    socket.current.on('updateUserList', (users) => {
+      setOnlineUsers(users);
     });
   };
 
@@ -148,9 +153,25 @@ function App() {
           <header className="chat-header">
             <div className="header-left">
               <h2><span>💬</span>Chatly</h2>
-              <div className="status-badge">
-                <div className="status-dot"></div>
-                Live
+              <div className="online-status-container">
+                <div className="status-badge">
+                  <div className="status-dot"></div>
+                  {onlineUsers.length} Online
+                </div>
+                <div className="online-avatars">
+                  {onlineUsers.slice(0, 3).map((user, i) => (
+                    <img 
+                      key={i} 
+                      src={getAvatarUrl(user)} 
+                      alt={user} 
+                      className="mini-avatar" 
+                      title={user}
+                    />
+                  ))}
+                  {onlineUsers.length > 3 && (
+                    <div className="more-users">+{onlineUsers.length - 3}</div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="header-right">
