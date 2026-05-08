@@ -158,19 +158,29 @@ function App() {
                   <div className="status-dot"></div>
                   {onlineUsers.length} Online
                 </div>
-                <div className="online-avatars">
-                  {onlineUsers.slice(0, 3).map((user, i) => (
-                    <img 
-                      key={i} 
-                      src={getAvatarUrl(user)} 
-                      alt={user} 
-                      className="mini-avatar" 
-                      title={user}
-                    />
-                  ))}
-                  {onlineUsers.length > 3 && (
-                    <div className="more-users">+{onlineUsers.length - 3}</div>
-                  )}
+                <div className="online-details">
+                  <div className="online-avatars">
+                    {onlineUsers.slice(0, 5).map((user, i) => (
+                      <div key={i} className="mini-avatar-wrapper" title={user}>
+                        <img 
+                          src={getAvatarUrl(user)} 
+                          alt={user} 
+                          className="mini-avatar" 
+                        />
+                        <span className="avatar-tooltip">{user}</span>
+                      </div>
+                    ))}
+                    {onlineUsers.length > 5 && (
+                      <div className="more-users">+{onlineUsers.length - 5}</div>
+                    )}
+                  </div>
+                  <div className="online-names-list">
+                    {onlineUsers.map((user, i) => (
+                      <span key={i} className="online-user-tag">
+                        {user}{i < onlineUsers.length - 1 ? ',' : ''}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

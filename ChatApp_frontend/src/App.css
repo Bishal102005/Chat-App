@@ -131,35 +131,87 @@
   gap: 12px;
 }
 
+.online-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .online-avatars {
   display: flex;
   align-items: center;
+  margin-left: 4px;
 }
 
-.mini-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid #0f172a;
+.mini-avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
   margin-left: -8px;
-  background: var(--bg-card);
-  transition: all 0.2s ease;
-  cursor: help;
 }
 
-.mini-avatar:first-child {
+.mini-avatar-wrapper:first-child {
   margin-left: 0;
 }
 
+.mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #0f172a;
+  background: var(--bg-card);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+
 .mini-avatar:hover {
-  transform: translateY(-4px) scale(1.1);
-  z-index: 10;
+  transform: translateY(-5px) scale(1.15);
+  z-index: 20;
   border-color: var(--primary);
 }
 
+.avatar-tooltip {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 30;
+}
+
+.mini-avatar-wrapper:hover .avatar-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.online-names-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 300px;
+}
+
+.online-user-tag {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
 .more-users {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--glass-bg);
   border: 2px solid #0f172a;
@@ -171,6 +223,7 @@
   justify-content: center;
   margin-left: -8px;
   backdrop-filter: blur(4px);
+  z-index: 10;
 }
 
 .header-right {
