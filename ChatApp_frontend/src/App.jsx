@@ -5,7 +5,9 @@ import './App.css'
 function App() {
   const socket = useRef(null);
   const scrollRef = useRef(null);
+  const globalScrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const notificationSound = useRef(null);
 
   const [view, setView] = useState('login');      // 'login' | 'lobby' | 'chat'
   const [userName, setUserName] = useState('');
@@ -28,12 +30,32 @@ function App() {
     return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(name)}`;
   };
 
-  // Auto-scroll
+  // Auto-scroll for Private Chat
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, partnerTyping]);
+
+  // Auto-scroll for Global Chat
+  useEffect(() => {
+    if (globalScrollRef.current) {
+      globalScrollRef.current.scrollTop = globalScrollRef.current.scrollHeight;
+    }
+  }, [groupMessages]);
+
+  // Initialize sound
+  useEffect(() => {
+    notificationSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+    notificationSound.current.volume = 0.5;
+  }, []);
+
+  const playSound = () => {
+    if (notificationSound.current) {
+      notificationSound.current.currentTime = 0;
+      notificationSound.current.play().catch(e => console.log('Sound blocked by browser:', e));
+    }
+  };
 
   function formatTime(ts) {
     const date = new Date(ts);
@@ -60,11 +82,13 @@ function App() {
     // Receive a global group message
     socket.current.on('groupMessage', ({ message }) => {
       setGroupMessages((prev) => [...prev, { ...message, isMe: false }]);
+      playSound();
     });
 
     // Someone sent us a chat request
     socket.current.on('incomingRequest', (data) => {
       setIncomingRequest(data);
+      playSound();
     });
 
     // Our request was declined
@@ -91,6 +115,7 @@ function App() {
     socket.current.on('privateMessage', ({ message }) => {
       setMessages((prev) => [...prev, { ...message, isMe: false }]);
       setPartnerTyping(false);
+      playSound();
     });
 
     // Partner typing indicator
@@ -296,7 +321,7 @@ function App() {
                   <h3>🌍 Global Group Chat</h3>
                   <p>Chat with everyone in the lobby</p>
                 </div>
-                <div className="global-message-list">
+                <div className="global-message-list" ref={globalScrollRef}>
                   {groupMessages.length === 0 && (
                     <div className="notice">Welcome to the lobby! Say hello to everyone.</div>
                   )}
