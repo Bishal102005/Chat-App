@@ -105,6 +105,17 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('partnerTyping', { isTyping, userName: user.userName });
   });
 
+  // Typing indicator for global lobby
+  socket.on('groupTyping', ({ isTyping }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+    socket.to(GLOBAL_ROOM).emit('groupTyping', { 
+      userName: user.userName, 
+      isTyping,
+      socketId: socket.id
+    });
+  });
+
   // User leaves private chat, goes back to lobby
   socket.on('leaveChat', ({ roomId }) => {
     const user = users.get(socket.id);

@@ -25,6 +25,7 @@ function App() {
   const [lobbyText, setLobbyText] = useState('');
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [notification, setNotification] = useState(null); // { title, message, type }
+  const [lobbyTypingUsers, setLobbyTypingUsers] = useState([]); // Array of names
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
@@ -86,7 +87,21 @@ function App() {
     // Receive a global group message
     socket.current.on('groupMessage', ({ message }) => {
       setGroupMessages((prev) => [...prev, { ...message, isMe: false }]);
+      // Remove this user from typing list when message arrives
+      setLobbyTypingUsers(prev => prev.filter(u => u !== message.sender));
       playSound();
+    });
+
+    // Global typing indicator
+    socket.current.on('groupTyping', ({ userName, isTyping }) => {
+      setLobbyTypingUsers(prev => {
+        if (isTyping) {
+          if (!prev.includes(userName)) return [...prev, userName];
+          return prev;
+        } else {
+          return prev.filter(u => u !== userName);
+        }
+      });
     });
 
     // Someone sent us a chat request
@@ -281,6 +296,19 @@ function App() {
     setLobbyText('');
   };
 
+  const handleLobbyInputChange = (e) => {
+    setLobbyText(e.target.value);
+    if (socket.current?.connected) {
+      socket.current.emit('groupTyping', { isTyping: true });
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket.current?.connected) {
+        socket.current.emit('groupTyping', { isTyping: false });
+      }
+    }, 2000);
+  };
+
   const handleLobbyKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -431,12 +459,21 @@ function App() {
                     type="text" 
                     placeholder={isRecording ? "Recording..." : "Message global chat..."}
                     value={lobbyText}
-                    onChange={(e) => setLobbyText(e.target.value)}
+                    onChange={handleLobbyInputChange}
                     onKeyDown={handleLobbyKeyDown}
                     disabled={isRecording}
                   />
                   <button onClick={sendGroupMessage} disabled={isRecording}>Send</button>
                 </div>
+                {lobbyTypingUsers.length > 0 && (
+                  <div className="lobby-typing-indicator">
+                    {lobbyTypingUsers.length === 1 
+                      ? `${lobbyTypingUsers[0]} is typing...`
+                      : lobbyTypingUsers.length === 2 
+                        ? `${lobbyTypingUsers[0]} and ${lobbyTypingUsers[1]} are typing...`
+                        : "Multiple people are typing..."}
+                  </div>
+                )}
               </section>
             </div>
           </main>
