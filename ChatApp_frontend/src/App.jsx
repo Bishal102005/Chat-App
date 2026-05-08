@@ -15,6 +15,10 @@ function App() {
   const [text, setText] = useState('');
   const [typingUser, setTypingUser] = useState(null);
 
+  const getAvatarUrl = (name) => {
+    return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  };
+
 
 
   // Auto-scroll
@@ -150,6 +154,11 @@ function App() {
               </div>
             </div>
             <div className="header-right">
+              <img 
+                src={getAvatarUrl(userName)} 
+                alt={userName} 
+                className="header-user-avatar"
+              />
               <div className="user-info">
                 <div className="user-name">{userName}</div>
                 <div className="user-status">Connected</div>
@@ -169,10 +178,17 @@ function App() {
                 <div key={i} className="notice">{msg.text}</div>
               ) : (
                 <div key={msg.id || i} className={`message-wrapper ${msg.isMe ? 'me' : 'them'}`}>
-                  {!msg.isMe && <span className="sender-name">{msg.sender}</span>}
-                  <div className="message-bubble">
-                    {msg.text}
-                    <span className="message-time">{msg.time}</span>
+                  <img 
+                    src={getAvatarUrl(msg.sender)} 
+                    alt={msg.sender} 
+                    className="message-avatar"
+                  />
+                  <div className="message-content">
+                    <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
+                    <div className="message-bubble">
+                      {msg.text}
+                      <span className="message-time">{msg.time}</span>
+                    </div>
                   </div>
                 </div>
               )
@@ -180,6 +196,11 @@ function App() {
             
             {typingUser && (
               <div className="typing-indicator">
+                <img 
+                  src={getAvatarUrl(typingUser)} 
+                  alt={typingUser} 
+                  className="typing-avatar"
+                />
                 <div className="dots">
                   <span></span>
                   <span></span>
