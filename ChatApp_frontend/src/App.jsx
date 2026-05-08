@@ -26,6 +26,10 @@ function App() {
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [notification, setNotification] = useState(null); // { title, message, type }
 
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const getAvatarUrl = (name) => {
     return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(name)}`;
   };
@@ -168,6 +172,60 @@ function App() {
     setMessages((prev) => [...prev, { ...msgData, isMe: true }]);
     socket.current.emit('privateMessage', { roomId, message: msgData });
     setText('');
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Audio = reader.result;
+          sendVoiceMessage(base64Audio);
+        };
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      setNotification({
+        title: 'Microphone Error',
+        message: 'Could not access your microphone. Please check your browser permissions.',
+        type: 'error'
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const sendVoiceMessage = (base64Audio) => {
+    if (!roomId) return;
+    const msgData = {
+      id: Date.now(),
+      sender: userName,
+      text: '', // empty text for voice
+      audio: base64Audio,
+      time: formatTime(Date.now())
+    };
+    setMessages((prev) => [...prev, { ...msgData, isMe: true }]);
+    socket.current.emit('privateMessage', { roomId, message: msgData });
   };
 
   const handleInputChange = (e) => {
@@ -421,7 +479,13 @@ function App() {
                 <div className="message-content">
                   <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
                   <div className="message-bubble">
-                    {msg.text}
+                    {msg.audio ? (
+                      <div className="voice-message">
+                        <audio src={msg.audio} controls />
+                      </div>
+                    ) : (
+                      msg.text
+                    )}
                     <span className="message-time">{msg.time}</span>
                   </div>
                 </div>
@@ -441,17 +505,29 @@ function App() {
 
           <footer className="chat-footer">
             <div className="input-container">
+              <button 
+                className={`voice-btn ${isRecording ? 'recording' : ''}`}
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                title="Hold to record"
+              >
+                {isRecording ? '🛑' : '🎤'}
+              </button>
               <input
                 type="text"
-                placeholder={`Message ${chatPartner}...`}
+                placeholder={isRecording ? "Recording voice message..." : `Message ${chatPartner}...`}
                 value={text}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
+                disabled={isRecording}
               />
-              <button className="send-btn" onClick={sendMessage}>
+              <button className="send-btn" onClick={sendMessage} disabled={isRecording}>
                 <span>Send</span>
               </button>
             </div>
+            {isRecording && <div className="recording-hint">Recording... Release to send</div>}
           </footer>
         </div>
       )}
