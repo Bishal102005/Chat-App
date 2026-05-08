@@ -6,7 +6,7 @@ function App() {
   const socket = useRef(null);
   const scrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  
+
   const [view, setView] = useState('login');
   const [userName, setUserName] = useState('');
   const [inputName, setInputName] = useState('');
@@ -17,8 +17,8 @@ function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const getAvatarUrl = (name) => {
-    // Using 'micah' for a sophisticated, high-end office portrait feel
-    return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+    // Using 'shapes' for a 100% gender-neutral, modern, and creative professional look
+    return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(name)}`;
   };
 
 
@@ -54,7 +54,7 @@ function App() {
 
     // Connect when logging in
     socket.current = connectWS();
-    
+
     socket.current.on('connect', () => {
       console.log('Connected to socket server');
       socket.current.emit('joinRoom', name);
@@ -163,10 +163,10 @@ function App() {
                   <div className="online-avatars">
                     {onlineUsers.slice(0, 5).map((user, i) => (
                       <div key={i} className="mini-avatar-wrapper" title={user}>
-                        <img 
-                          src={getAvatarUrl(user)} 
-                          alt={user} 
-                          className="mini-avatar" 
+                        <img
+                          src={getAvatarUrl(user)}
+                          alt={user}
+                          className="mini-avatar"
                         />
                         <span className="avatar-tooltip">{user}</span>
                       </div>
@@ -186,9 +186,9 @@ function App() {
               </div>
             </div>
             <div className="header-right">
-              <img 
-                src={getAvatarUrl(userName)} 
-                alt={userName} 
+              <img
+                src={getAvatarUrl(userName)}
+                alt={userName}
                 className="header-user-avatar"
               />
               <div className="user-info">
@@ -210,9 +210,9 @@ function App() {
                 <div key={i} className="notice">{msg.text}</div>
               ) : (
                 <div key={msg.id || i} className={`message-wrapper ${msg.isMe ? 'me' : 'them'}`}>
-                  <img 
-                    src={getAvatarUrl(msg.sender)} 
-                    alt={msg.sender} 
+                  <img
+                    src={getAvatarUrl(msg.sender)}
+                    alt={msg.sender}
                     className="message-avatar"
                   />
                   <div className="message-content">
@@ -225,12 +225,12 @@ function App() {
                 </div>
               )
             ))}
-            
+
             {typingUser && (
               <div className="typing-indicator">
-                <img 
-                  src={getAvatarUrl(typingUser)} 
-                  alt={typingUser} 
+                <img
+                  src={getAvatarUrl(typingUser)}
+                  alt={typingUser}
                   className="typing-avatar"
                 />
                 <div className="dots">
