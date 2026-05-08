@@ -488,7 +488,9 @@ function App() {
                     onKeyDown={handleLobbyKeyDown}
                     disabled={isRecording}
                   />
-                  <button onClick={sendGroupMessage} disabled={isRecording}>Send</button>
+                  <button className="send-btn" onClick={sendGroupMessage} disabled={isRecording}>
+                    <span>Send</span>
+                  </button>
                   {lobbyTypingUsers.length > 0 && (
                     <div className="lobby-typing-indicator">
                       {lobbyTypingUsers.length === 1 
