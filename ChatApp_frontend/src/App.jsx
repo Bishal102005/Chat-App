@@ -27,6 +27,9 @@ function App() {
   const [notification, setNotification] = useState(null); // { title, message, type }
   const [lobbyTypingUsers, setLobbyTypingUsers] = useState([]); // Array of names
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // false | 'lobby' | 'chat'
+  const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐'];
+
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -324,6 +327,15 @@ function App() {
     setRoomId('');
   };
 
+  const addEmoji = (emoji, mode) => {
+    if (mode === 'lobby') {
+      setLobbyText(prev => prev + emoji);
+    } else {
+      setText(prev => prev + emoji);
+    }
+    setShowEmojiPicker(false);
+  };
+
   const handleLogout = () => {
     if (socket.current) socket.current.disconnect();
     setView('login');
@@ -446,6 +458,19 @@ function App() {
                   ))}
                 </div>
                 <div className="global-chat-input-area">
+                  <button 
+                    className="emoji-trigger"
+                    onClick={() => setShowEmojiPicker(showEmojiPicker === 'lobby' ? false : 'lobby')}
+                  >
+                    😊
+                  </button>
+                  {showEmojiPicker === 'lobby' && (
+                    <div className="emoji-picker-popup">
+                      {emojis.map(e => (
+                        <span key={e} onClick={() => addEmoji(e, 'lobby')}>{e}</span>
+                      ))}
+                    </div>
+                  )}
                   <button 
                     className={`voice-btn mini ${isRecording ? 'recording' : ''}`}
                     onMouseDown={() => startRecording('global')}
@@ -574,6 +599,19 @@ function App() {
 
           <footer className="chat-footer">
             <div className="input-container">
+              <button 
+                className="emoji-trigger"
+                onClick={() => setShowEmojiPicker(showEmojiPicker === 'chat' ? false : 'chat')}
+              >
+                😊
+              </button>
+              {showEmojiPicker === 'chat' && (
+                <div className="emoji-picker-popup">
+                  {emojis.map(e => (
+                    <span key={e} onClick={() => addEmoji(e, 'chat')}>{e}</span>
+                  ))}
+                </div>
+              )}
               <button 
                 className={`voice-btn ${isRecording ? 'recording' : ''}`}
                 onMouseDown={startRecording}
