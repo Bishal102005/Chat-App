@@ -17,8 +17,8 @@ function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const getAvatarUrl = (name) => {
-    // Reverting to the professional 'avataaars' style as requested
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+    // Using 'adventurer-neutral' (v9.x) for an expressive, inclusive, and gender-neutral look
+    return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(name)}`;
   };
 
 
