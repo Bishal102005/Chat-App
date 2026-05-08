@@ -464,16 +464,16 @@ function App() {
                     disabled={isRecording}
                   />
                   <button onClick={sendGroupMessage} disabled={isRecording}>Send</button>
+                  {lobbyTypingUsers.length > 0 && (
+                    <div className="lobby-typing-indicator">
+                      {lobbyTypingUsers.length === 1 
+                        ? `${lobbyTypingUsers[0]} is typing...`
+                        : lobbyTypingUsers.length === 2 
+                          ? `${lobbyTypingUsers[0]} and ${lobbyTypingUsers[1]} are typing...`
+                          : "Multiple people are typing..."}
+                    </div>
+                  )}
                 </div>
-                {lobbyTypingUsers.length > 0 && (
-                  <div className="lobby-typing-indicator">
-                    {lobbyTypingUsers.length === 1 
-                      ? `${lobbyTypingUsers[0]} is typing...`
-                      : lobbyTypingUsers.length === 2 
-                        ? `${lobbyTypingUsers[0]} and ${lobbyTypingUsers[1]} are typing...`
-                        : "Multiple people are typing..."}
-                  </div>
-                )}
               </section>
             </div>
           </main>
