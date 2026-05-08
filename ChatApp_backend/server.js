@@ -39,8 +39,8 @@ io.on('connection', (socket) => {
 
   // Global Group Message
   socket.on('groupMessage', (message) => {
-    // Broadcast to everyone in the lobby
-    io.to(GLOBAL_ROOM).emit('groupMessage', { message });
+    // Broadcast to everyone in the lobby EXCEPT the sender
+    socket.to(GLOBAL_ROOM).emit('groupMessage', { message });
   });
 
   // User A sends a chat request to User B
