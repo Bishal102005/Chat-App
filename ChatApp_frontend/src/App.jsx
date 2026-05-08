@@ -174,7 +174,7 @@ function App() {
     setText('');
   };
 
-  const startRecording = async () => {
+  const startRecording = async (mode = 'private') => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -190,7 +190,11 @@ function App() {
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64Audio = reader.result;
-          sendVoiceMessage(base64Audio);
+          if (mode === 'global') {
+            sendGlobalVoiceMessage(base64Audio);
+          } else {
+            sendVoiceMessage(base64Audio);
+          }
         };
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -226,6 +230,18 @@ function App() {
     };
     setMessages((prev) => [...prev, { ...msgData, isMe: true }]);
     socket.current.emit('privateMessage', { roomId, message: msgData });
+  };
+
+  const sendGlobalVoiceMessage = (base64Audio) => {
+    const msgData = {
+      id: Date.now(),
+      sender: userName,
+      text: '',
+      audio: base64Audio,
+      time: formatTime(Date.now())
+    };
+    setGroupMessages((prev) => [...prev, { ...msgData, isMe: true }]);
+    socket.current.emit('groupMessage', msgData);
   };
 
   const handleInputChange = (e) => {
@@ -389,21 +405,37 @@ function App() {
                       <div className="message-content">
                         <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
                         <div className="message-bubble mini">
-                          {msg.text}
+                          {msg.audio ? (
+                            <div className="voice-message mini">
+                              <audio src={msg.audio} controls />
+                            </div>
+                          ) : (
+                            msg.text
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="global-chat-input-area">
+                  <button 
+                    className={`voice-btn mini ${isRecording ? 'recording' : ''}`}
+                    onMouseDown={() => startRecording('global')}
+                    onMouseUp={stopRecording}
+                    onTouchStart={() => startRecording('global')}
+                    onTouchEnd={stopRecording}
+                  >
+                    {isRecording ? '🛑' : '🎤'}
+                  </button>
                   <input 
                     type="text" 
-                    placeholder="Message global chat..." 
+                    placeholder={isRecording ? "Recording..." : "Message global chat..."}
                     value={lobbyText}
                     onChange={(e) => setLobbyText(e.target.value)}
                     onKeyDown={handleLobbyKeyDown}
+                    disabled={isRecording}
                   />
-                  <button onClick={sendGroupMessage}>Send</button>
+                  <button onClick={sendGroupMessage} disabled={isRecording}>Send</button>
                 </div>
               </section>
             </div>
