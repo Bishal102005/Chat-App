@@ -18,7 +18,9 @@ function App() {
   const [chatPartner, setChatPartner] = useState('');
   const [roomId, setRoomId] = useState('');
   const [messages, setMessages] = useState([]);
+  const [groupMessages, setGroupMessages] = useState([]);
   const [text, setText] = useState('');
+  const [lobbyText, setLobbyText] = useState('');
   const [partnerTyping, setPartnerTyping] = useState(false);
 
   const getAvatarUrl = (name) => {
@@ -52,6 +54,11 @@ function App() {
 
     socket.current.on('updateUserList', (users) => {
       setOnlineUsers(users);
+    });
+
+    // Receive a global group message
+    socket.current.on('groupMessage', ({ message }) => {
+      setGroupMessages((prev) => [...prev, { ...message, isMe: false }]);
     });
 
     // Someone sent us a chat request
@@ -149,6 +156,30 @@ function App() {
     }
   };
 
+  const sendGroupMessage = (e) => {
+    if (e) e.preventDefault();
+    const msgText = lobbyText.trim();
+    if (!msgText) return;
+
+    const msgData = {
+      id: Date.now(),
+      sender: userName,
+      text: msgText,
+      time: formatTime(Date.now())
+    };
+
+    setGroupMessages((prev) => [...prev, { ...msgData, isMe: true }]);
+    socket.current.emit('groupMessage', msgData);
+    setLobbyText('');
+  };
+
+  const handleLobbyKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendGroupMessage();
+    }
+  };
+
   const leaveChat = () => {
     socket.current.emit('leaveChat', { roomId });
     setView('lobby');
@@ -218,35 +249,72 @@ function App() {
           </header>
 
           <main className="lobby-main">
-            <h3 className="lobby-title">👥 Online Users</h3>
-            {otherUsers.length === 0 ? (
-              <div className="lobby-empty">
-                <div className="lobby-empty-icon">🔍</div>
-                <p>No other users online yet.</p>
-                <span>Share the link and invite someone to chat!</span>
-              </div>
-            ) : (
-              <div className="user-cards">
-                {otherUsers.map((user) => (
-                  <div key={user.socketId} className={`user-card ${user.status === 'busy' ? 'busy' : ''}`}>
-                    <img src={getAvatarUrl(user.userName)} alt={user.userName} className="user-card-avatar" />
-                    <div className="user-card-info">
-                      <div className="user-card-name">{user.userName}</div>
-                      <div className={`user-card-status ${user.status}`}>
-                        {user.status === 'busy' ? '🔴 In a chat' : '🟢 Available'}
+            <div className="lobby-content-wrapper">
+              {/* Left Sidebar: Online Users */}
+              <aside className="lobby-sidebar">
+                <h3 className="lobby-title">👥 Online Users</h3>
+                {otherUsers.length === 0 ? (
+                  <div className="lobby-empty">
+                    <p>No one else here yet.</p>
+                  </div>
+                ) : (
+                  <div className="user-cards">
+                    {otherUsers.map((user) => (
+                      <div key={user.socketId} className={`user-card ${user.status === 'busy' ? 'busy' : ''}`}>
+                        <img src={getAvatarUrl(user.userName)} alt={user.userName} className="user-card-avatar" />
+                        <div className="user-card-info">
+                          <div className="user-card-name">{user.userName}</div>
+                          <div className={`user-card-status ${user.status}`}>
+                            {user.status === 'busy' ? '🔴 In chat' : '🟢 Available'}
+                          </div>
+                        </div>
+                        <button
+                          className={`request-btn ${pendingRequest === user.socketId ? 'pending' : ''}`}
+                          onClick={() => sendChatRequest(user.socketId)}
+                          disabled={user.status === 'busy' || !!pendingRequest}
+                        >
+                          {pendingRequest === user.socketId ? '⏳' : '💬'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </aside>
+
+              {/* Right Main: Global Chat */}
+              <section className="global-chat-section">
+                <div className="global-chat-header">
+                  <h3>🌍 Global Group Chat</h3>
+                  <p>Chat with everyone in the lobby</p>
+                </div>
+                <div className="global-message-list">
+                  {groupMessages.length === 0 && (
+                    <div className="notice">Welcome to the lobby! Say hello to everyone.</div>
+                  )}
+                  {groupMessages.map((msg, i) => (
+                    <div key={msg.id || i} className={`message-wrapper mini ${msg.isMe ? 'me' : 'them'}`}>
+                      <img src={getAvatarUrl(msg.sender)} alt={msg.sender} className="message-avatar mini" />
+                      <div className="message-content">
+                        <span className="sender-name">{msg.isMe ? 'You' : msg.sender}</span>
+                        <div className="message-bubble mini">
+                          {msg.text}
+                        </div>
                       </div>
                     </div>
-                    <button
-                      className={`request-btn ${pendingRequest === user.socketId ? 'pending' : ''} ${user.status === 'busy' ? 'disabled' : ''}`}
-                      onClick={() => sendChatRequest(user.socketId)}
-                      disabled={user.status === 'busy' || !!pendingRequest}
-                    >
-                      {pendingRequest === user.socketId ? '⏳ Waiting...' : user.status === 'busy' ? 'Busy' : '💬 Request Chat'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+                <div className="global-chat-input-area">
+                  <input 
+                    type="text" 
+                    placeholder="Message global chat..." 
+                    value={lobbyText}
+                    onChange={(e) => setLobbyText(e.target.value)}
+                    onKeyDown={handleLobbyKeyDown}
+                  />
+                  <button onClick={sendGroupMessage}>Send</button>
+                </div>
+              </section>
+            </div>
           </main>
 
           {/* Incoming request popup */}

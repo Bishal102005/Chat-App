@@ -14,6 +14,7 @@ const io = new Server(server, {
 
 // Track users: socketId -> { userName, status: 'lobby' | 'busy' }
 const users = new Map();
+const GLOBAL_ROOM = 'global_lobby';
 
 function broadcastUserList() {
   const userList = Array.from(users.entries()).map(([id, data]) => ({
@@ -31,8 +32,15 @@ io.on('connection', (socket) => {
   socket.on('joinLobby', (userName) => {
     socket.userName = userName;
     users.set(socket.id, { userName, status: 'lobby' });
+    socket.join(GLOBAL_ROOM); // Join global chat
     console.log(`${userName} joined the lobby.`);
     broadcastUserList();
+  });
+
+  // Global Group Message
+  socket.on('groupMessage', (message) => {
+    // Broadcast to everyone in the lobby
+    io.to(GLOBAL_ROOM).emit('groupMessage', { message });
   });
 
   // User A sends a chat request to User B
