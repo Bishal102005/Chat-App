@@ -22,6 +22,7 @@ function App() {
   const [text, setText] = useState('');
   const [lobbyText, setLobbyText] = useState('');
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [notification, setNotification] = useState(null); // { title, message, type }
 
   const getAvatarUrl = (name) => {
     return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(name)}`;
@@ -69,7 +70,11 @@ function App() {
     // Our request was declined
     socket.current.on('requestDeclined', ({ byName }) => {
       setPendingRequest(null);
-      alert(`${byName} declined your request.`);
+      setNotification({
+        title: 'Request Declined',
+        message: `${byName} is not available to chat right now.`,
+        type: 'error'
+      });
     });
 
     // Chat has started (both accepted)
@@ -95,7 +100,11 @@ function App() {
 
     // Partner left the chat
     socket.current.on('partnerLeft', () => {
-      alert(`${chatPartner || 'Your chat partner'} has left the chat.`);
+      setNotification({
+        title: 'Chat Ended',
+        message: `${chatPartner || 'Your chat partner'} has left the conversation.`,
+        type: 'info'
+      });
       setView('lobby');
       setMessages([]);
       setChatPartner('');
@@ -328,6 +337,20 @@ function App() {
                   <button className="accept-btn" onClick={() => handleRequestResponse(true)}>✓ Accept</button>
                   <button className="decline-btn" onClick={() => handleRequestResponse(false)}>✗ Decline</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* General Notification Modal */}
+          {notification && (
+            <div className="request-overlay">
+              <div className="request-modal notification">
+                <div className={`notification-icon ${notification.type}`}>
+                  {notification.type === 'error' ? '🚫' : 'ℹ️'}
+                </div>
+                <h3>{notification.title}</h3>
+                <p>{notification.message}</p>
+                <button className="dismiss-btn" onClick={() => setNotification(null)}>Dismiss</button>
               </div>
             </div>
           )}
