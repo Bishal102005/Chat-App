@@ -31,6 +31,8 @@ function App() {
   const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐'];
 
   const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState(null); // base64 data
+  const [recordedAudioMode, setRecordedAudioMode] = useState(null); // 'private' | 'global'
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -174,6 +176,13 @@ function App() {
   };
 
   const sendMessage = () => {
+    if (recordedAudio && recordedAudioMode === 'private') {
+      sendVoiceMessage(recordedAudio);
+      setRecordedAudio(null);
+      setRecordedAudioMode(null);
+      return;
+    }
+
     const msgText = text.trim();
     if (!msgText || !roomId) return;
 
@@ -208,11 +217,8 @@ function App() {
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64Audio = reader.result;
-          if (mode === 'global') {
-            sendGlobalVoiceMessage(base64Audio);
-          } else {
-            sendVoiceMessage(base64Audio);
-          }
+          setRecordedAudio(base64Audio);
+          setRecordedAudioMode(mode);
         };
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -220,6 +226,7 @@ function App() {
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setRecordedAudio(null); // Clear any previous recording
     } catch (err) {
       console.error('Error accessing microphone:', err);
       setNotification({
@@ -231,10 +238,23 @@ function App() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+  };
+
+  const toggleRecording = (mode = 'private') => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording(mode);
+    }
+  };
+
+  const clearRecordedAudio = () => {
+    setRecordedAudio(null);
+    setRecordedAudioMode(null);
   };
 
   const sendVoiceMessage = (base64Audio) => {
@@ -284,6 +304,14 @@ function App() {
 
   const sendGroupMessage = (e) => {
     if (e) e.preventDefault();
+
+    if (recordedAudio && recordedAudioMode === 'global') {
+      sendGlobalVoiceMessage(recordedAudio);
+      setRecordedAudio(null);
+      setRecordedAudioMode(null);
+      return;
+    }
+
     const msgText = lobbyText.trim();
     if (!msgText) return;
 
@@ -472,21 +500,22 @@ function App() {
                     </div>
                   )}
                   <button 
-                    className={`voice-btn mini ${isRecording ? 'recording' : ''}`}
-                    onMouseDown={() => startRecording('global')}
-                    onMouseUp={stopRecording}
-                    onTouchStart={() => startRecording('global')}
-                    onTouchEnd={stopRecording}
+                    className={`voice-btn mini ${isRecording ? 'recording' : ''} ${recordedAudio && recordedAudioMode === 'global' ? 'ready' : ''}`}
+                    onClick={() => toggleRecording('global')}
+                    title={isRecording ? "Stop Recording" : "Start Recording"}
                   >
-                    {isRecording ? '🛑' : '🎤'}
+                    {isRecording ? '🛑' : (recordedAudio && recordedAudioMode === 'global' ? '🎵' : '🎤')}
                   </button>
+                  {recordedAudio && recordedAudioMode === 'global' && (
+                    <button className="clear-audio-btn mini" onClick={clearRecordedAudio} title="Clear recording">✕</button>
+                  )}
                   <input 
                     type="text" 
-                    placeholder={isRecording ? "Recording..." : "Message global chat..."}
-                    value={lobbyText}
+                    placeholder={isRecording ? "Recording..." : (recordedAudio && recordedAudioMode === 'global' ? "Voice message ready!" : "Message global chat...")}
+                    value={recordedAudio && recordedAudioMode === 'global' ? "" : lobbyText}
                     onChange={handleLobbyInputChange}
                     onKeyDown={handleLobbyKeyDown}
-                    disabled={isRecording}
+                    disabled={isRecording || (recordedAudio && recordedAudioMode === 'global')}
                   />
                   <button className="send-btn" onClick={sendGroupMessage} disabled={isRecording}>
                     <span>Send</span>
@@ -615,28 +644,29 @@ function App() {
                 </div>
               )}
               <button 
-                className={`voice-btn ${isRecording ? 'recording' : ''}`}
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onTouchStart={startRecording}
-                onTouchEnd={stopRecording}
-                title="Hold to record"
+                className={`voice-btn ${isRecording ? 'recording' : ''} ${recordedAudio && recordedAudioMode === 'private' ? 'ready' : ''}`}
+                onClick={() => toggleRecording('private')}
+                title={isRecording ? "Stop Recording" : "Start Recording"}
               >
-                {isRecording ? '🛑' : '🎤'}
+                {isRecording ? '🛑' : (recordedAudio && recordedAudioMode === 'private' ? '🎵' : '🎤')}
               </button>
+              {recordedAudio && recordedAudioMode === 'private' && (
+                <button className="clear-audio-btn" onClick={clearRecordedAudio} title="Clear recording">✕</button>
+              )}
               <input
                 type="text"
-                placeholder={isRecording ? "Recording voice message..." : `Message ${chatPartner}...`}
-                value={text}
+                placeholder={isRecording ? "Recording voice message..." : (recordedAudio && recordedAudioMode === 'private' ? "Voice message ready!" : `Message ${chatPartner}...`)}
+                value={recordedAudio && recordedAudioMode === 'private' ? "" : text}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                disabled={isRecording}
+                disabled={isRecording || (recordedAudio && recordedAudioMode === 'private')}
               />
               <button className="send-btn" onClick={sendMessage} disabled={isRecording}>
                 <span>Send</span>
               </button>
             </div>
-            {isRecording && <div className="recording-hint">Recording... Release to send</div>}
+            {isRecording && <div className="recording-hint">Recording... Click mic again to stop</div>}
+            {recordedAudio && <div className="recording-hint success">Voice message ready! Click Send to deliver.</div>}
           </footer>
         </div>
       )}
