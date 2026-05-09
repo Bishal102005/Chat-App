@@ -28,7 +28,7 @@ function App() {
   const [lobbyTypingUsers, setLobbyTypingUsers] = useState([]); // Array of names
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // false | 'lobby' | 'chat'
-  const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐'];
+  const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐',🥺🤗😁😒😤😱❤️😮‍💨😘👀😞🥳🙃😭😕😶🫠😏🫤☺️🙂‍↕️🫥🥲🤤🙂‍↔️😋😜😬😑🤫🫡🫣🤭🙄😡🤯🥶🥵😷🤕🤒😇🤮🫩😴😪😵😵‍💫🫨🤡🌝🌚❤️‍🩹💔💞💓💗❤️‍🔥🫂👍👎👋🖐️];
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState(null); // base64 data
@@ -478,7 +478,7 @@ function App() {
                               <audio src={msg.audio} controls />
                             </div>
                           ) : (
-                            msg.text
+                            <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
                           )}
                         </div>
                       </div>
@@ -509,13 +509,13 @@ function App() {
                   {recordedAudio && recordedAudioMode === 'global' && (
                     <button className="clear-audio-btn mini" onClick={clearRecordedAudio} title="Clear recording">✕</button>
                   )}
-                  <input 
-                    type="text" 
+                  <textarea 
                     placeholder={isRecording ? "Recording..." : (recordedAudio && recordedAudioMode === 'global' ? "Voice message ready!" : "Message global chat...")}
                     value={recordedAudio && recordedAudioMode === 'global' ? "" : lobbyText}
                     onChange={handleLobbyInputChange}
                     onKeyDown={handleLobbyKeyDown}
                     disabled={isRecording || (recordedAudio && recordedAudioMode === 'global')}
+                    rows="1"
                   />
                   <button className="send-btn" onClick={sendGroupMessage} disabled={isRecording}>
                     <span>Send</span>
@@ -653,13 +653,13 @@ function App() {
               {recordedAudio && recordedAudioMode === 'private' && (
                 <button className="clear-audio-btn" onClick={clearRecordedAudio} title="Clear recording">✕</button>
               )}
-              <input
-                type="text"
+              <textarea
                 placeholder={isRecording ? "Recording voice message..." : (recordedAudio && recordedAudioMode === 'private' ? "Voice message ready!" : `Message ${chatPartner}...`)}
                 value={recordedAudio && recordedAudioMode === 'private' ? "" : text}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 disabled={isRecording || (recordedAudio && recordedAudioMode === 'private')}
+                rows="1"
               />
               <button className="send-btn" onClick={sendMessage} disabled={isRecording}>
                 <span>Send</span>

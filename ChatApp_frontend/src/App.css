@@ -369,6 +369,8 @@
   line-height: 1.5;
   position: relative;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-wrapper.me .message-bubble {
@@ -426,11 +428,23 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-.input-container input {
+.input-container input,
+.input-container textarea {
   flex: 1;
   background: transparent;
   border: none;
   padding: 0.75rem 1rem;
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: none;
+  outline: none;
+}
+
+.input-container textarea {
+  min-height: 44px;
+  max-height: 150px;
+  padding-top: 12px;
 }
 
 .send-btn {
@@ -793,13 +807,24 @@
   animation: fadeIn 0.3s ease;
 }
 
-.global-chat-input-area input {
+.global-chat-input-area input,
+.global-chat-input-area textarea {
   flex: 1;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   padding: 0.75rem 1.25rem;
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: 0.95rem;
   border-radius: 12px;
-  color: white;
+  resize: none;
+  outline: none;
+}
+
+.global-chat-input-area textarea {
+  min-height: 42px;
+  max-height: 100px;
+  padding-top: 10px;
 }
 
 .global-chat-input-area button {
