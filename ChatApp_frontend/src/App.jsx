@@ -28,7 +28,7 @@ function App() {
   const [lobbyTypingUsers, setLobbyTypingUsers] = useState([]); // Array of names
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // false | 'lobby' | 'chat'
-  const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐',🥺🤗😁😒😤😱❤️😮‍💨😘👀😞🥳🙃😭😕😶🫠😏🫤☺️🙂‍↕️🫥🥲🤤🙂‍↔️😋😜😬😑🤫🫡🫣🤭🙄😡🤯🥶🥵😷🤕🤒😇🤮🫩😴😪😵😵‍💫🫨🤡🌝🌚❤️‍🩹💔💞💓💗❤️‍🔥🫂👍👎👋🖐️];
+  const emojis = ['😀', '😂', '😍', '😎', '🤔', '👍', '🔥', '✨', '👋', '🙌', '🎉', '💡', '✅', '❌', '🚀', '⭐', '🥺', '🤗', '😁', '😒', '😤', '😱', '❤️', '😮‍💨', '😘', '👀', '😞', '🥳', '🙃', '😭', '😕', '😶', '🫠', '😏', '🫤', '☺️', '🙂‍↕️', '🫥', '🥲', '🤤', '🙂‍↔️', '😋', '😜', '😬', '😑', '🤫', '🫡', '🫣', '🤭', '🙄', '😡', '🤯', '🥶', '🥵', '😷', '🤕', '🤒', '😇', '🤮', '🫩', '😴', '😪', '😵', '😵‍💫', '🫨', '🤡', '🌝', '🌚', '❤️‍🩹', '💔', '💞', '💓', '💗', '❤️‍🔥', '🫂', '👍', '👎', '👋', '🖐️'];
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState(null); // base64 data
