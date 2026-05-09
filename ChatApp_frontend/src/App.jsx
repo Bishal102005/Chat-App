@@ -296,10 +296,12 @@ function App() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // If Ctrl+Enter is pressed, send the message
+    if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       sendMessage();
     }
+    // Regular Enter will now naturally create a new line in the textarea
   };
 
   const sendGroupMessage = (e) => {
@@ -341,10 +343,12 @@ function App() {
   };
 
   const handleLobbyKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // If Ctrl+Enter is pressed, send the message
+    if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       sendGroupMessage();
     }
+    // Regular Enter will now naturally create a new line in the textarea
   };
 
   const leaveChat = () => {
@@ -515,7 +519,7 @@ function App() {
                     onChange={handleLobbyInputChange}
                     onKeyDown={handleLobbyKeyDown}
                     disabled={isRecording || (recordedAudio && recordedAudioMode === 'global')}
-                    rows="1"
+                    rows="2"
                   />
                   <button className="send-btn" onClick={sendGroupMessage} disabled={isRecording}>
                     <span>Send</span>
@@ -659,7 +663,7 @@ function App() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 disabled={isRecording || (recordedAudio && recordedAudioMode === 'private')}
-                rows="1"
+                rows="2"
               />
               <button className="send-btn" onClick={sendMessage} disabled={isRecording}>
                 <span>Send</span>
