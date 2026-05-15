@@ -936,8 +936,9 @@
 }
 
 /* Mini Message Styles for Global Chat */
-.message-wrapper.mini {
-  max-width: 85%;
+.global-message-list .message-wrapper.mini {
+  width: 100%;
+  max-width: 100%;
   gap: 10px;
 }
 
@@ -947,10 +948,18 @@
   border-radius: 8px;
 }
 
+.global-message-list .message-wrapper.mini .message-content {
+  width: fit-content;
+  max-width: min(70%, 520px);
+  min-width: 0;
+}
+
 .message-bubble.mini {
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
   border-radius: 16px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 /* User Cards Grid */
